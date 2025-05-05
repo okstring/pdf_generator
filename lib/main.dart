@@ -1,406 +1,147 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:universal_html/html.dart' as html;
+import 'package:printing/printing.dart';
+
+import 'pdf_generator.dart';
 
 void main() {
-  runApp(MaterialApp(home: Scaffold(body: PdfGeneratorWithBackgroundImage())));
+  runApp(const MyApp());
 }
 
-class PdfGeneratorWithBackgroundImage extends StatefulWidget {
-  const PdfGeneratorWithBackgroundImage({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
-  State<PdfGeneratorWithBackgroundImage> createState() =>
-      _PdfGeneratorWithBackgroundImageState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'PDF viewer',
+      theme: ThemeData(
+          primarySwatch: Colors.blue,
+      ),
+      home: const PdfCreatorPage(),
+    );
+  }
 }
 
-class _PdfGeneratorWithBackgroundImageState
-    extends State<PdfGeneratorWithBackgroundImage> {
-  // 예시 문제 데이터
-  final List<String> questions = [
-    "1. What is the past tense of 'go'?",
-    "2. Choose the correct sentence: A. She don't like coffee. B. She doesn't like coffee.",
-    "3. Fill in the blank: I ___ studying English for 3 years.",
-    "4. What is the opposite of 'expensive'?",
-    "5. Choose the correct word: The book is ___ (their/there/they're) on the table.",
-  ];
+class PdfCreatorPage extends StatefulWidget {
+  const PdfCreatorPage({super.key});
 
-  Future<void> generatePdf() async {
-    // PDF 문서 생성
-    final pdf = pw.Document();
+  @override
+  State<PdfCreatorPage> createState() => _PdfCreatorPageState();
+}
 
-    // A4 사이즈 정의
-    final a4Size = PdfPageFormat.a4;
-
-    // 두 단 사이의 간격
-    final columnGap = 10.0;
-
-    // 페이지 여백
-    final pageMargin = 20.0;
-
-    // 각 단의 너비 계산
-    final columnWidth = (a4Size.width - (2 * pageMargin) - columnGap) / 2;
-
-    // 문제를 두 그룹으로 나누기
-    final leftColumnQuestions = questions.sublist(
-      0,
-      questions.length ~/ 2 + questions.length % 2,
-    );
-    final rightColumnQuestions = questions.sublist(
-      questions.length ~/ 2 + questions.length % 2,
-    );
-
-    // 배경 이미지 로드
-    final backgroundImageData = await rootBundle.load(
-      'images/activity.png',
-    );
-    final backgroundImage = pw.MemoryImage(
-      backgroundImageData.buffer.asUint8List(),
-    );
-
-    // 헤더 로고 이미지 로드
-    final headerLogoData = await rootBundle.load('images/city.png');
-    final headerLogo = pw.MemoryImage(headerLogoData.buffer.asUint8List());
-
-    // 한글 폰트 로드 (필요한 경우)
-    final fontData = await rootBundle.load(
-      'fonts/NanumGothic.ttf',
-    );
-    final ttf = pw.Font.ttf(fontData);
-
-    // 페이지 1: 전체 배경 이미지 + 콘텐츠
-    pdf.addPage(
-      pw.Page(
-        pageFormat: a4Size,
-        margin: pw.EdgeInsets.all(pageMargin),
-        build: (pw.Context context) {
-          return pw.Stack(
-            children: [
-              // 배경 이미지
-              pw.Positioned.fill(
-                child: pw.Image(backgroundImage, fit: pw.BoxFit.cover),
-              ),
-
-              // 콘텐츠 레이어
-              pw.Container(
-                width: a4Size.width,
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.center,
-                  children: [
-                    // 로고 이미지
-                    pw.Container(
-                      width: 100,
-                      height: 100,
-                      child: pw.Image(headerLogo),
-                    ),
-
-                    pw.SizedBox(height: 20),
-
-                    // 제목
-                    pw.Container(
-                      padding: pw.EdgeInsets.symmetric(
-                        vertical: 10,
-                        horizontal: 20,
-                      ),
-                      decoration: pw.BoxDecoration(
-                        color: PdfColors.white,
-                        borderRadius: pw.BorderRadius.circular(5),
-                      ),
-                      child: pw.Text(
-                        'English Test - Part 1',
-                        style: pw.TextStyle(
-                          fontSize: 24,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColors.black,
-                        ),
-                      ),
-                    ),
-
-                    pw.SizedBox(height: 40),
-
-                    // 문제 영역 (배경 흰색으로 덮어서 가독성 향상)
-                    pw.Container(
-                      width: a4Size.width - (2 * pageMargin),
-                      decoration: pw.BoxDecoration(
-                        color: PdfColors.white,
-                        borderRadius: pw.BorderRadius.circular(8),
-                        boxShadow: [
-                          pw.BoxShadow(
-                            color: PdfColors.black,
-                            offset: PdfPoint(2, 2),
-                            blurRadius: 5,
-                          ),
-                        ],
-                      ),
-                      padding: pw.EdgeInsets.all(20),
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text(
-                            'Answer the following questions:',
-                            style: pw.TextStyle(
-                              fontSize: 14,
-                              fontWeight: pw.FontWeight.bold,
-                            ),
-                          ),
-
-                          pw.SizedBox(height: 20),
-
-                          // 두 단 레이아웃
-                          pw.Row(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              // 왼쪽 단
-                              pw.Container(
-                                width: columnWidth - 20, // 패딩 고려
-                                child: pw.Column(
-                                  crossAxisAlignment:
-                                      pw.CrossAxisAlignment.start,
-                                  children:
-                                      leftColumnQuestions.map((question) {
-                                        return pw.Container(
-                                          margin: pw.EdgeInsets.only(
-                                            bottom: 15,
-                                          ),
-                                          child: pw.Text(
-                                            question,
-                                            style: pw.TextStyle(fontSize: 12),
-                                          ),
-                                        );
-                                      }).toList(),
-                                ),
-                              ),
-
-                              // 간격
-                              pw.SizedBox(width: columnGap),
-
-                              // 오른쪽 단
-                              pw.Container(
-                                width: columnWidth - 20, // 패딩 고려
-                                child: pw.Column(
-                                  crossAxisAlignment:
-                                      pw.CrossAxisAlignment.start,
-                                  children:
-                                      rightColumnQuestions.map((question) {
-                                        return pw.Container(
-                                          margin: pw.EdgeInsets.only(
-                                            bottom: 15,
-                                          ),
-                                          child: pw.Text(
-                                            question,
-                                            style: pw.TextStyle(fontSize: 12),
-                                          ),
-                                        );
-                                      }).toList(),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // 푸터
-              pw.Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: pw.Container(
-                  alignment: pw.Alignment.centerRight,
-                  child: pw.Text(
-                    'Page 1/2',
-                    style: pw.TextStyle(color: PdfColors.white, fontSize: 10),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    // 페이지 2: 배경 이미지가 상단에만 있는 디자인
-    pdf.addPage(
-      pw.Page(
-        pageFormat: a4Size,
-        margin: pw.EdgeInsets.all(pageMargin),
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // 상단 배경 이미지
-              pw.Container(
-                width: a4Size.width - (2 * pageMargin),
-                height: 150,
-                child: pw.Stack(
-                  children: [
-                    // 이미지
-                    pw.Positioned.fill(
-                      child: pw.Image(backgroundImage, fit: pw.BoxFit.cover),
-                    ),
-
-                    // 이미지 위에 오버레이 텍스트
-                    pw.Positioned(
-                      bottom: 20,
-                      left: 20,
-                      child: pw.Container(
-                        padding: pw.EdgeInsets.symmetric(
-                          vertical: 8,
-                          horizontal: 16,
-                        ),
-                        decoration: pw.BoxDecoration(
-                          color: PdfColors.white,
-                          borderRadius: pw.BorderRadius.circular(4),
-                        ),
-                        child: pw.Text(
-                          'English Test - Part 2',
-                          style: pw.TextStyle(
-                            fontSize: 20,
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // 본문 내용
-              pw.Container(
-                width: a4Size.width - (2 * pageMargin),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      'Reading Comprehension',
-                      style: pw.TextStyle(
-                        fontSize: 16,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                    ),
-
-                    pw.SizedBox(height: 10),
-
-                    pw.Text(
-                      'Read the following passage and answer the questions below:',
-                      style: pw.TextStyle(
-                        fontSize: 12,
-                        fontStyle: pw.FontStyle.italic,
-                      ),
-                    ),
-
-                    pw.SizedBox(height: 15),
-
-                    // 샘플 지문
-                    pw.Container(
-                      padding: pw.EdgeInsets.all(10),
-                      decoration: pw.BoxDecoration(
-                        color: PdfColors.grey100,
-                        borderRadius: pw.BorderRadius.circular(5),
-                      ),
-                      child: pw.Text(
-                        'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
-                        style: pw.TextStyle(fontSize: 10),
-                      ),
-                    ),
-
-                    pw.SizedBox(height: 20),
-
-                    // 문제 목록
-                    pw.Text(
-                      '6. What is the main idea of the passage?',
-                      style: pw.TextStyle(fontSize: 12),
-                    ),
-                    pw.SizedBox(height: 10),
-                    pw.Text(
-                      '7. What does the author imply in the second sentence?',
-                      style: pw.TextStyle(fontSize: 12),
-                    ),
-                    pw.SizedBox(height: 10),
-                    pw.Text(
-                      '8. Which of the following best summarizes the passage?',
-                      style: pw.TextStyle(fontSize: 12),
-                    ),
-
-                    // 답안 작성 영역
-                    pw.SizedBox(height: 30),
-                    pw.Text(
-                      'Write your answers below:',
-                      style: pw.TextStyle(
-                        fontSize: 12,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                    ),
-                    pw.SizedBox(height: 10),
-                    pw.Container(
-                      width: a4Size.width - (2 * pageMargin),
-                      height: 200,
-                      decoration: pw.BoxDecoration(
-                        border: pw.Border.all(color: PdfColors.black),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // 푸터
-              pw.Spacer(),
-              pw.Container(
-                width: a4Size.width - (2 * pageMargin),
-                alignment: pw.Alignment.centerRight,
-                child: pw.Text(
-                  'Page 2/2',
-                  style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    // PDF를 바이트 데이터로 변환
-    final Uint8List pdfBytes = await pdf.save();
-
-    // 웹에서 다운로드 처리
-    final blob = html.Blob([pdfBytes], 'application/pdf');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor =
-        html.AnchorElement(href: url)
-          ..setAttribute('download', 'english_test_with_background.pdf')
-          ..style.display = 'none';
-
-    html.document.body?.children.add(anchor);
-    anchor.click();
-
-    html.document.body?.children.remove(anchor);
-    html.Url.revokeObjectUrl(url);
-  }
+class _PdfCreatorPageState extends State<PdfCreatorPage> {
+  bool _useDoubleColumn = true; // 두 단 레이아웃 사용 여부
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('배경 이미지 PDF 생성기')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: generatePdf,
-              child: const Text('배경 이미지 PDF 생성 및 다운로드'),
+      appBar: AppBar(
+        title: const Text('PDF 문서 생성기'),
+        actions: [
+          // 두 단 레이아웃 전환 버튼
+          Switch(
+            value: _useDoubleColumn,
+            onChanged: (value) {
+              setState(() {
+                _useDoubleColumn = value;
+              });
+            },
+          ),
+          // 두 단 레이아웃 라벨
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16.0),
+              child: Text('두 단 레이아웃'),
             ),
-            const SizedBox(height: 20),
-            const Text('배경 이미지가 포함된 A4 PDF가 생성됩니다.'),
-            const SizedBox(height: 10),
-            const Text('(참고: 실제 사용 시 assets/images 폴더에 이미지 파일을 추가해야 합니다)'),
-          ],
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Center(
+          child: FutureBuilder<Uint8List>(
+            future: PdfGenerator().generatePdf(
+              headerText: '테스트 입니다.',
+              headerStyle: pw.TextStyle(
+                fontSize: 24,
+                fontWeight: pw.FontWeight.bold,
+              ),
+              contentsText: '''
+# 첫 번째 대제목
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean fringilla ante sit amet aliquet blandit. Etiam a feugiat massa, tincidunt ultrices arcu. Aenean congue turpis eget ligula cursus, accumsan porttitor felis efficitur. Phasellus erat urna, rhoncus vel urna non, faucibus cursus arcu. Nunc ut venenatis eros. Integer nibh erat, accumsan nec feugiat ut, congue mollis purus. Proin venenatis, risus non auctor facilisis, elit eros dictum dolor, eu aliquet dui sapien id purus. Aliquam at elit diam. Nam varius vitae lectus eget rhoncus. Sed quis lacinia purus.
+
+Pellentesque rutrum ornare odio id mollis. Donec et semper nunc. Cras ac consequat ipsum. Donec iaculis quam et justo viverra pharetra. Proin gravida nisl nec orci efficitur, nec fringilla dui mattis. Nunc ac neque a nisl auctor pellentesque quis a lorem. In tristique ligula vitae nisl mollis, ut ornare nisl tincidunt. Sed consequat congue nulla in euismod. Proin cursus luctus ante eu porttitor. Sed vel ligula nulla.
+
+Aenean id magna interdum, fringilla odio eget, sodales ipsum. Nam in augue sapien. Sed vel sem eget nisl venenatis iaculis. In vulputate vulputate leo quis lacinia. In quis tempus enim, in tincidunt tortor. Aliquam euismod aliquet nulla in placerat. Nam blandit mi mi. Morbi dictum bibendum quam, sed finibus nisl suscipit efficitur. Nullam fringilla ante vel felis hendrerit, non blandit neque hendrerit. Sed molestie, leo a tempus mattis, arcu enim sodales libero, non ornare elit dui ac erat.
+
+Vestibulum in lectus nunc. Sed egestas, justo sed mattis scelerisque, erat sem molestie urna, vel bibendum est tellus et dui. Sed eu eleifend arcu. Sed faucibus scelerisque velit a pharetra. Duis nunc purus, sagittis nec egestas et, eleifend nec purus. Maecenas ultricies magna nulla, quis iaculis ipsum faucibus sit amet. Nam posuere interdum hendrerit. Donec ac imperdiet ipsum, sed tristique ligula. Ut lacinia velit orci, ac convallis dolor sollicitudin a. Curabitur eu nulla varius, venenatis purus accumsan, convallis nunc. Ut bibendum sem ut metus malesuada tincidunt. Sed pharetra pharetra purus, ac venenatis lacus tempor ut. Suspendisse mi sem, tempus a quam vitae, commodo euismod elit.
+
+In lacinia nunc a augue vehicula aliquam. Vivamus auctor lectus mauris, eu volutpat nibh pulvinar et. In sit amet elementum lectus. Sed ornare dolor non iaculis varius. Quisque ut ligula auctor, efficitur ex et, laoreet lectus. Nam vulputate sapien vel ex malesuada euismod. Proin erat nisl, laoreet eu nisl sit amet, sodales sollicitudin augue. Vestibulum suscipit congue luctus. Cras elit urna, pretium mollis commodo vitae, molestie sit amet velit. Proin ut ex maximus, auctor nunc a, sagittis purus. Proin feugiat rhoncus sapien, in efficitur nisi vehicula faucibus. Praesent et felis nisi.
+
+Praesent condimentum sapien vitae quam consequat sollicitudin. Donec in fringilla est. Aenean justo elit, malesuada quis dignissim a, varius in mauris. Pellentesque commodo metus sit amet dui accumsan congue. Integer cursus congue malesuada. Ut fermentum accumsan leo. In molestie, magna cursus dapibus accumsan, odio velit sodales turpis, at malesuada odio sapien quis risus.
+
+Nam auctor nisi elit, a suscipit enim facilisis faucibus. Donec sagittis pulvinar consectetur. Mauris quis tincidunt magna. Vestibulum blandit tortor a leo dictum sollicitudin. Proin suscipit orci ac massa luctus interdum. Morbi dignissim vitae lorem id pretium. Ut sed faucibus est. Maecenas vehicula leo lectus, sit amet vulputate nisi facilisis sit amet. Nulla aliquet sit amet diam volutpat efficitur. Maecenas nec mauris eget mi ultrices ullamcorper. Pellentesque condimentum est et vulputate eleifend. Duis aliquet purus ipsum, non sagittis ipsum eleifend nec. Integer commodo, lacus ac faucibus ultricies, ligula felis venenatis mauris, sed fringilla nulla enim non eros. Pellentesque in sollicitudin sapien.
+
+Fusce sed massa volutpat, sodales sem sit amet, accumsan lacus. Etiam in ipsum congue, dignissim augue sed, venenatis sem. Morbi aliquam quam vel mauris hendrerit, vitae auctor arcu euismod. Integer auctor tortor vel rutrum rhoncus. Morbi nec augue tincidunt, auctor quam ut, pretium dolor. Aliquam erat volutpat. Nam vel mauris eget lorem luctus pharetra at ac ante. Aenean nibh est, placerat aliquam sapien eu, vestibulum vehicula justo. Mauris dignissim malesuada egestas. Phasellus in volutpat urna, a eleifend ante. Etiam ut ligula id dolor rhoncus sollicitudin eu a velit. Fusce porttitor nisi et vestibulum viverra. Proin ac tellus vestibulum, placerat lorem quis, tincidunt justo. Nullam ut purus sed massa dignissim tempor sed non magna. Proin tincidunt enim at ornare pulvinar.
+
+Vestibulum porta purus vitae lorem lacinia, luctus tristique nisl interdum. Proin in sem id est feugiat viverra. Fusce convallis diam sit amet accumsan accumsan. Mauris ac nibh a eros vestibulum fringilla id blandit magna. Phasellus eget facilisis libero, eget tempor dolor. Vestibulum lacus leo, vulputate in venenatis eget, tempus vitae arcu. Pellentesque porta tristique luctus. Nulla condimentum semper ornare. Nam vitae eros nisi.
+
+Curabitur sed tempus orci. Nunc eros velit, varius sed felis non, sodales pellentesque arcu. Vestibulum id fermentum lectus, laoreet pellentesque neque. Donec turpis magna, venenatis id velit in, facilisis molestie orci. Donec massa sem, varius at lorem at, commodo aliquet nulla. Quisque et luctus nunc, sed venenatis justo. Mauris vitae augue id dui facilisis scelerisque.
+
+Etiam ac cursus nunc. Pellentesque molestie purus quam, quis convallis augue rutrum imperdiet. Curabitur finibus non odio nec feugiat. Nunc et massa et nisi viverra molestie. Etiam dapibus consequat enim non vestibulum. Praesent at diam sed arcu finibus ornare eu a purus. Vivamus mauris sem, mattis in odio sit amet, tincidunt varius sapien. Aliquam ligula massa, convallis bibendum ultrices quis, commodo id metus. Nam fringilla turpis ex, vel gravida dui posuere ac. Cras at dictum diam. Proin ac imperdiet nisi, id dignissim erat. Donec vel bibendum tellus. Vestibulum sit amet tortor ipsum. Etiam ultricies porttitor velit vitae malesuada. Vivamus laoreet neque at fringilla consectetur. Maecenas vitae vestibulum enim, sed suscipit orci.
+
+Ut ut urna tristique, feugiat sapien non, commodo lorem. Aliquam condimentum, nisi quis tincidunt gravida, nulla justo euismod turpis, in iaculis elit elit quis magna. Phasellus fermentum vulputate velit ac iaculis. In sed tempor lectus. Nulla facilisi. Aenean elementum, lacus nec interdum ultricies, dolor tortor iaculis odio, ac laoreet justo diam eu odio. Sed porta urna in nulla scelerisque, ornare accumsan nisi facilisis. Nullam vestibulum malesuada enim, vel ultrices urna molestie eu. Nulla sem ex, porttitor id tincidunt nec, elementum nec sem. Etiam et eros at mauris consequat vestibulum. Integer dignissim, nulla congue lobortis bibendum, purus massa laoreet lacus, non dignissim purus tellus vel dui. Aliquam accumsan erat ac hendrerit ullamcorper. Vivamus at magna at lorem feugiat finibus vitae eu massa. Nunc nec arcu ut mauris aliquet tristique. Quisque auctor elit ut nunc sagittis rhoncus. Integer euismod urna sed ipsum ornare, at aliquet mi fringilla.
+
+In sodales purus elit, ut pretium felis interdum non. Aenean accumsan ligula sit amet quam vehicula pretium. Donec luctus tortor vitae nisl tristique blandit. Phasellus id ex porttitor, dignissim nibh vehicula, vehicula massa. Sed interdum vehicula ligula a rutrum. Cras posuere ex fermentum risus blandit porttitor. Phasellus ut commodo leo. Sed ante arcu, bibendum et pellentesque aliquam, faucibus a nisi.
+
+Fusce id eros sagittis, pretium nisi eget, elementum nisl. Sed ullamcorper iaculis egestas. Duis metus lacus, dictum euismod urna a, placerat lacinia ex. Etiam pellentesque felis at tempor ullamcorper. In imperdiet aliquam tincidunt. Quisque vel molestie neque, a fermentum est. Cras volutpat eleifend risus, in scelerisque diam dapibus at. Curabitur lorem orci, dignissim vulputate odio quis, laoreet congue velit. Fusce et posuere lorem, a vulputate eros. Etiam porttitor nisi sed orci mattis, rhoncus consectetur justo dapibus.
+
+Aliquam erat volutpat. Donec sit amet ipsum vitae odio ultrices luctus at eu mauris. Donec non lorem non dui laoreet finibus. Praesent tristique diam id dolor molestie pellentesque. Morbi suscipit metus vel auctor viverra. Fusce viverra sit amet ex a viverra. Sed in euismod risus.
+
+Mauris eros lorem, euismod vitae enim vitae, euismod varius sem. Nam eu lobortis metus. Vestibulum auctor nunc libero, laoreet auctor nisi elementum a. Vivamus facilisis nibh et felis auctor venenatis. Integer consequat mollis diam. Proin vehicula tellus libero, ut fermentum metus mollis non. Praesent ut arcu tellus. Mauris vel turpis quis ipsum suscipit fermentum a id diam.
+
+Nullam et urna nulla. Duis hendrerit a elit sed laoreet. Curabitur sit amet enim ligula. Fusce sollicitudin ultricies mi, at bibendum augue tempus non. Nam quis erat quis est lacinia egestas luctus ut nisi. Etiam vitae pellentesque augue. Nunc egestas justo erat, nec sodales est rhoncus at. Pellentesque vel mi vestibulum, tincidunt magna id, malesuada ipsum. Proin blandit viverra ipsum euismod varius. Nulla maximus ligula at quam feugiat placerat. Nulla efficitur turpis in ornare ornare. Mauris tempus maximus libero, at euismod justo suscipit ac. Pellentesque imperdiet in quam in tincidunt.
+
+Quisque eget odio vel dolor efficitur porttitor a sed ante. Sed eros metus, feugiat ac libero tristique, convallis varius mi. Vestibulum cursus arcu a libero egestas sodales. Pellentesque at risus mauris. Mauris luctus, tellus ut tincidunt fringilla, quam turpis vulputate magna, id fringilla sem neque ac turpis. Maecenas non nulla metus. Vestibulum quis fringilla ligula. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent vel erat leo. Nulla sagittis vulputate convallis. Vestibulum blandit eleifend malesuada.
+
+In nec tellus in libero mattis lacinia quis nec magna. Nulla facilisi. Vivamus semper vulputate condimentum. Nullam sit amet lacus convallis, placerat quam eget, sollicitudin tortor. Nulla tempus egestas metus. Aenean sodales nisi in orci ultrices, nec rutrum mauris lobortis. Pellentesque congue eros tortor, non maximus velit sodales ut. Nam vehicula purus dolor, at ultrices dolor ornare ac.
+
+Cras dapibus in lectus nec porta. Vestibulum pretium faucibus ex non lobortis. Nullam vestibulum magna nec arcu convallis dapibus. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Aliquam malesuada felis eu porta varius. Cras laoreet condimentum luctus. Vivamus consectetur magna sit amet feugiat ultricies. In hac habitasse platea dictumst. Nulla id orci non ante cursus lacinia. Nunc quis consectetur diam. Mauris tempus maximus tempor. Etiam ut ex vestibulum nisi imperdiet imperdiet. Nullam dignissim blandit sem et accumsan. Phasellus convallis, sem at ultrices pulvinar, justo libero interdum lacus, vitae consectetur libero lacus sit amet diam. In egestas, lectus ut pellentesque venenatis, diam dolor congue libero, id vehicula quam velit id urna.
+
+''',
+              contentsStyle: pw.TextStyle(
+                fontSize: 12,
+              ),
+              pageFormat: PdfPageFormat.a4,
+              headerHeight: 20.0,
+              useDoubleColumn: _useDoubleColumn, // 두 단 레이아웃 옵션 전달
+              columnSpacing: 15.0, // 두 단 사이의 간격
+            ),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return CircularProgressIndicator();
+              } else if (snapshot.hasError) {
+                return Text('오류 발생: ${snapshot.error}');
+              } else if (snapshot.hasData) {
+                return PdfPreview(
+                  build: (_) => snapshot.data!,
+                  maxPageWidth: 700,
+                  allowPrinting: false,
+                  allowSharing: false,
+                  canChangePageFormat: false,
+                  canChangeOrientation: false,
+                  canDebug: false,
+                );
+              } else {
+                return Text('PDF를 생성할 수 없습니다.');
+              }
+            },
+          ),
         ),
       ),
     );
