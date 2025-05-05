@@ -10,7 +10,6 @@ import 'package:pdf/widgets.dart' as pw;
 /// - 마크다운 형식의 텍스트를 PDF로 변환
 /// - 단일/두 단 레이아웃 지원
 /// - 사용자 정의 스타일 및 포맷 옵션
-/// - 한글 폰트 자동 처리
 class PdfGenerator {
   /// PDF 문서를 생성합니다.
   ///
