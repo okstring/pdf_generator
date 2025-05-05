@@ -19,7 +19,6 @@ class PdfGenerator {
   /// - [headerStyle] : 제목 스타일 (선택적)
   /// - [contentsStyle] : 본문 스타일 (선택적)
   /// - [pageFormat] : 페이지 크기 (기본값: A4)
-  /// - [pageMargin] : 페이지 여백 (기본값: 32.0)
   /// - [headerHeight] : 제목과 본문 사이 간격 (기본값: 20.0)
   /// - [useDoubleColumn] : 두 단 레이아웃 사용 여부 (기본값: false)
   /// - [columnSpacing] : 두 단 사이 간격 (기본값: 10.0)
