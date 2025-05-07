@@ -1,16 +1,6 @@
-# pdfs
+# pdf_generator
 
-A new Flutter project.
+- pdf 패키지를 활용해서 한 단, 두 단 pdf를 Uint8List로 반환.
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+![스크린샷 2025-05-07 오후 5 15 11](https://github.com/user-attachments/assets/bdaace89-3830-48aa-8fcf-ae348d4360af)
+![스크린샷 2025-05-07 오후 5 15 03](https://github.com/user-attachments/assets/498c1ce3-2071-44bb-8c21-acfe2d445f6e)
